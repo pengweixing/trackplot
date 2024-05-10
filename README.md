@@ -4,7 +4,11 @@
 [![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/poisonalien/trackplot.svg)](https://github.com/poisonalien/trackplot/issues)
 <!-- badges: end -->
 ### 
-
+```r
+options(repr.plot.height=8,repr.plot.width=10)
+track_plot(summary_list = t, col = track_cols, show_ideogram = TRUE,y_max =heights,bw_track_height=2,
+            hicstart = 41002940, hicend = 41028300,evidence = DNArepair[2,'HiC'])
+```
 <img src="TOP1.png" width="600">
 
 ## Introduction
