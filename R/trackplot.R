@@ -331,6 +331,8 @@ track_plot = function(summary_list = NULL,
                       col = "gray70",
                       groupAutoScale = FALSE,
                       y_max = NULL,
+                      hicstart = NULL ,
+                      hicend = NULL,
                       y_min = NULL,
                       txname = NULL,
                       genename = NULL,
@@ -357,7 +359,8 @@ track_plot = function(summary_list = NULL,
                       peaks_track_names = NULL,
                       left_mar = NULL,
                       bw_ord = NULL,
-                      layout_ord = c("p", "b", "h", "g", "c")
+                      evidence = NULL,
+                      layout_ord = c("k","p", "b", "h", "g", "c")
 ){
   
   if(is.null(summary_list)){
@@ -374,7 +377,7 @@ track_plot = function(summary_list = NULL,
   is_bw = attr(coldata, "is_bw")
   build = attr(coldata, "refbuild")
   
-  loci_p = .parse_loci(loci = loci)
+  loci_p = trackplot:::.parse_loci(loci = loci)
   chr = loci_p$chr; start = loci_p$start; end = loci_p$end
   
   # chr = summary_list$loci[1]
@@ -471,8 +474,10 @@ track_plot = function(summary_list = NULL,
   
   ntracks = length(summary_list)
   
-  lo = .make_layout(ntracks = ntracks, ntracks_h = bw_track_height, cytoband = show_ideogram, cytoband_h = cytoband_track_height, genemodel = draw_gene_track, 
-               genemodel_h = gene_track_height, chrHMM = any(!is.null(ucscChromHMM), !is.null(chromHMM)), chrHMM_h = chromHMM_track_height, loci = !is.null(peaks), 
+  lo = make_layout(ntracks = ntracks, ntracks_h = bw_track_height, cytoband = show_ideogram,
+                   cytoband_h = cytoband_track_height, genemodel = draw_gene_track, 
+               genemodel_h = gene_track_height, chrHMM = any(!is.null(ucscChromHMM), !is.null(chromHMM)), 
+                   chrHMM_h = chromHMM_track_height, loci = !is.null(peaks), 
                loci_h = peaks_track_height, scale_track_height = scale_track_height, lord = layout_ord)
   
   query = data.table::data.table(chr = chr, start = start, end = end)
@@ -524,7 +529,21 @@ track_plot = function(summary_list = NULL,
       text(x = start, y = idx - 0.5, labels = names(peaks_data)[idx], adj = 1.2, xpd = TRUE)
     }
   }
-  
+  ## Draw arc lines                                  
+    start1 <- hicstart
+    end1 <- hicend
+    center_x <- (start1 + end1) / 2
+    radius <- abs(end1 - start1) /1.5
+    x <- seq(start1, end1, length.out = 100)
+    y <- sqrt(radius^2 - (x - center_x)^2)
+  #  print(x)
+    # Plot the arc
+    par(mar = c(0.5, left_mar, 2, 0))
+    plot(x, y, type = "l", xlim = c(start, end), ylim = c(sqrt(radius^2-((end1-start1)/2)^2), max(y)),
+         xlab = "", ylab = "", main = "",bty = "n",yaxt = "n",xaxt = "n")
+    text(center_x, max(y), evidence, pos = 1)
+  #  print(evidence)
+    
   #Draw bigWig signals
   if(is_bw){
     for(idx in 1:length(summary_list)){
@@ -660,7 +679,7 @@ track_plot = function(summary_list = NULL,
     }
     
     hmmdata = lapply(chromHMM, function(hmm){
-      .load_chromHMM(chr = chr, start = start, end = end, ucsc = hmm)
+      trackplot:::.load_chromHMM(chr = chr, start = start, end = end, ucsc = hmm)
       #.extract_chromHmm_ucsc()
     })
     
@@ -673,7 +692,7 @@ track_plot = function(summary_list = NULL,
     plotHMM = TRUE
   }else if(!is.null(ucscChromHMM)){
     hmmdata = lapply(ucscChromHMM, function(hmmtbl){
-      .extract_chromHmm_ucsc(chr = chr, start = start, end = end, refBuild = build, tbl = hmmtbl)
+      trackplot:::.extract_chromHmm_ucsc(chr = chr, start = start, end = end, refBuild = build, tbl = hmmtbl)
     })
     names(hmmdata) = ucscChromHMM
     plotHMM = TRUE
@@ -691,7 +710,7 @@ track_plot = function(summary_list = NULL,
       chromHMM_cols = .get_ucsc_hmm_states_cols()
     }
     
-    .plot_ucsc_chrHmm(d = hmmdata, start = start, end = end, hmm_cols = chromHMM_cols)
+    trackplot:::.plot_ucsc_chrHmm(d = hmmdata, start = start, end = end, hmm_cols = chromHMM_cols)
   }
   
   #Draw gene models
@@ -711,7 +730,7 @@ track_plot = function(summary_list = NULL,
       }
       
       if(collapse_txs){
-        etbl = .collapse_tx(etbl)
+        etbl = trackplot:::.collapse_tx(etbl)
       }
       
       if(show_axis){
@@ -775,6 +794,7 @@ track_plot = function(summary_list = NULL,
   }
   
 }
+
 
 # profileplot is an ultra-fast, simple, and minimal dependency R script to generate profile-plots from bigWig files
 #' Generate bigWig signal matrix for given genomic regions or ucsc refseq transcripts 
@@ -1552,11 +1572,12 @@ summarize_homer_annots = function(anno, sample_names = NULL, legend_font_size = 
   legend(...)
 }
 
-.make_layout = function(ntracks, ntracks_h = 3, cytoband = TRUE, cytoband_h = 1, genemodel = TRUE, genemodel_h = 1, chrHMM = TRUE, chrHMM_h = 1, loci = TRUE, loci_h = 2, scale_track_height = 1, lord = NULL){
+make_layout = function(ntracks, ntracks_h = 3, cytoband = TRUE, cytoband_h = 1, genemodel = TRUE, genemodel_h = 1, chrHMM = TRUE, chrHMM_h = 1, loci = TRUE, loci_h = 2, scale_track_height = 1, lord = NULL){
   
   #track heights (peaks, bigwig tracks, chromHMM, gene model, cytoband, scale)
-  lo_h_ord =  list("p" = loci_h, "b" = rep(ntracks_h, ntracks), "h" = chrHMM_h, "g" = genemodel_h, "c" = cytoband_h, "s" = scale_track_height)
-  mat_ord = c("p" = 1, "b" = 2, "h" = 3, "g" = 4, "c" = 5, "s" = 6)
+  lo_h_ord =  list("k" = 5,"p" = loci_h, "b" = rep(ntracks_h, ntracks), "h" = chrHMM_h, "g" = genemodel_h, 
+                   "c" = cytoband_h, "s" = scale_track_height)
+#  mat_ord = c("k" = 4, "p" = 1, "b" = 2, "h" = 3, "g" = 4, "c" = 5, "s" = 6)
   
   case = NULL
   #print(paste(cytoband, genemodel, chrHMM, loci, sep = ", "))
@@ -1572,7 +1593,7 @@ summarize_homer_annots = function(anno, sample_names = NULL, legend_font_size = 
   }else if(cytoband & genemodel & chrHMM == FALSE & loci == FALSE){
     #print("no hmm and no loci")
     case = 3
-    lo_h_ord = lo_h_ord[c("b", "g", "s", "c")] #c(rep(ntracks_h, ntracks), genemodel_h, scale_track_height, cytoband_h)
+    lo_h_ord = lo_h_ord[c("k","b", "g", "s", "c")] #c(rep(ntracks_h, ntracks), genemodel_h, scale_track_height, cytoband_h)
   }else if(cytoband & genemodel == FALSE & chrHMM == FALSE & loci == FALSE){
     #print("no hmm and no loci and no genemodel")
     case = 4
@@ -1615,7 +1636,9 @@ summarize_homer_annots = function(anno, sample_names = NULL, legend_font_size = 
   lo = lo_h_ord[lord]
   
   #Order in which plots are drawn by default
-  plot_ord = data.frame(row.names = c("p", "b", "h", "g", "s", "c"), name = c("p", "b", "h", "g", "s", "c"), ord = 1:6)
+  plot_ord = data.frame(row.names = c("k","p", "b", "h", "g", "s", "c"), 
+                        name = c("k","p", "b", "h", "g", "s", "c"),
+                        ord = 1:7)
   plot_ord = plot_ord[names(lo),,drop = FALSE]
   plot_ord$ord_req = 1:nrow(plot_ord) #Required order
   plot_ord = plot_ord[order(plot_ord$ord),]
@@ -1672,6 +1695,32 @@ summarize_homer_annots = function(anno, sample_names = NULL, legend_font_size = 
   
   lo_h_ord[lord]
 }
+
+.gen_windows = function(chr = NA, start, end, window_size = 50, op_dir = getwd()){
+  #chr = "chr19"; start = 15348301; end = 15391262; window_size = 50; op_dir = getwd()
+  message(paste0("Generating windows ", "[", window_size, " bp window size]"))
+  
+  window_dat = data.table::data.table()
+  #temp = start;
+  while(start <= end){
+    window_dat = data.table::rbindlist(l = list(window_dat, data.table::data.table(start, end = start + window_size)), fill = TRUE)
+    start = start + window_size
+  }
+  window_dat$chr = chr
+  window_dat = window_dat[, .(chr, start, end)]
+  
+  op_dir = paste0(op_dir, "/")
+  
+  if(!dir.exists(paths = op_dir)){
+    dir.create(path = op_dir, showWarnings = FALSE, recursive = TRUE)
+  }
+  
+  temp_op_bed = tempfile(pattern = "trackr", tmpdir = op_dir, fileext = ".bed")
+  data.table::fwrite(x = window_dat, file = temp_op_bed, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+  temp_op_bed
+}
+
+         
 
 .gen_windows = function(chr = NA, start, end, window_size = 50, op_dir = getwd()){
   #chr = "chr19"; start = 15348301; end = 15391262; window_size = 50; op_dir = getwd()
