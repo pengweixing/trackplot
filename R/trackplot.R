@@ -325,7 +325,7 @@ track_summarize = function(summary_list = NULL, condition = NULL, stat = "mean")
 #' t = track_extract(colData = cd, loci = oct4_loci, build = "hg19")
 #' trackplot::track_plot(summary_list = t)
 #' @export
-track_plot = function(summary_list = NULL,
+track_plot2= function(summary_list = NULL,
                       draw_gene_track = TRUE,
                       show_ideogram = TRUE,
                       col = "gray70",
@@ -360,7 +360,10 @@ track_plot = function(summary_list = NULL,
                       left_mar = NULL,
                       bw_ord = NULL,
                       evidence = NULL,
-                      layout_ord = c("k","p", "b", "h", "g", "c")
+                      layout_ord = c("k","p", "b", "h", "g", "c"),
+                      textpos1 = NULL,
+                      textpos2 = NULL,
+                      addtext = NULL
 ){
   
   if(is.null(summary_list)){
@@ -474,7 +477,7 @@ track_plot = function(summary_list = NULL,
   
   ntracks = length(summary_list)
   
-  lo = make_layout(ntracks = ntracks, ntracks_h = bw_track_height, cytoband = show_ideogram,
+  lo = trackplot:::make_layout(ntracks = ntracks, ntracks_h = bw_track_height, cytoband = show_ideogram,
                    cytoband_h = cytoband_track_height, genemodel = draw_gene_track, 
                genemodel_h = gene_track_height, chrHMM = any(!is.null(ucscChromHMM), !is.null(chromHMM)), 
                    chrHMM_h = chromHMM_track_height, loci = !is.null(peaks), 
@@ -567,6 +570,12 @@ track_plot = function(summary_list = NULL,
         next
       }
       rect(xleft = x$start, ybottom = 0, xright = x$end, ytop = x$max, col = col[idx], border = col[idx])
+      ### add text to each track
+      if(idx%%2==0){
+          text(x = textpos1, y = max(x$max)*1.5, labels = addtext[idx-1] ,cex = 1.5, xpd = TRUE)
+          text(x = textpos2, y = max(x$max)*1.5, labels = addtext[idx] ,cex = 1.5, xpd = TRUE)
+      }
+   
       if(show_axis){
         axis(side = 2, at = c(plot_height_min[idx], plot_height[idx]), las = 2)  
       }else{
@@ -624,10 +633,12 @@ track_plot = function(summary_list = NULL,
         }
         next
       }
-      cols = cut(x$max, breaks = c(0, 166, 277, 389, 500, 612, 723, 834, 945, max(x$max)), labels = c("#FFFFFF", "#F0F0F0", "#D9D9D9", "#BDBDBD", "#969696", "#737373", 
-                                                                                                      "#525252", "#252525", "#000000"))
+   #   cols = cut(x$max, breaks = c(0, 166, 277, 389, 500, 612, 723, 834, 945, max(x$max)), labels = c("#FFFFFF", "#F0F0F0", "#D9D9D9", "#BDBDBD", "#969696", "#737373", 
+  #                                                                                                    "#525252", "#252525", "#000000"))
       rect(xleft = x$start, ybottom = 0.01, xright = x$end, ytop = 0.99, col = as.character(cols), border = NA)
-      
+  ###  add text to each peak on each track
+   #   text(x = textpos1, y = 0.5, labels = names(summary_list)[idx], adj = 1, cex = gene_fsize, xpd = TRUE)
+        
       if(plot_regions){
         # boxcol = "#192a56"
         boxcol = grDevices::adjustcolor(boxcol, alpha.f = boxcolalpha)
@@ -794,6 +805,7 @@ track_plot = function(summary_list = NULL,
   }
   
 }
+
 
 
 # profileplot is an ultra-fast, simple, and minimal dependency R script to generate profile-plots from bigWig files
