@@ -1,4 +1,4 @@
-## trackplot - Fast and easy visualisation of bigWig files in R
+## I updated the track plot to display the Hi-C loops along with their corresponding p-values.
 
 <!-- badges: start -->
 [![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/poisonalien/trackplot.svg)](https://github.com/poisonalien/trackplot/issues)
@@ -9,7 +9,9 @@ options(repr.plot.height=8,repr.plot.width=10)
 track_plot(summary_list = t, col = track_cols, show_ideogram = TRUE,y_max =heights,bw_track_height=2,
             hicstart = 41002940, hicend = 41028300,evidence = DNArepair[2,'HiC'])
 ```
-<img src="TOP1.png" width="600">
+#### The number is showing the significant pvalues
+![plot](PIK3C2B.IGV.png)
+
 
 ## Introduction
 
